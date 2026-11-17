@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gtt-watch"
+version = "0.1.0"
+description = "Watch the GTT memory a process like gnome-shell takes from system RAM on AMD APUs."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "ulliiiiiiiii" }]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[project.scripts]
+gtt-watch = "gtt_watch:main"
+
+[project.urls]
+Homepage = "https://github.com/ulliiiiiiiii/gtt-watch"
+
+[tool.setuptools]
+py-modules = ["gtt_watch"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
