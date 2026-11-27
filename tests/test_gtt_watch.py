@@ -25,3 +25,25 @@ def test_limit_sets_the_exit_status(monkeypatch, tmp_path, capsys):
 def test_missing_process(monkeypatch):
     monkeypatch.setattr(gtt_watch, "find_pid", lambda name: None)
     assert gtt_watch.main(["--process", "nothing-here"]) == 1
+
+
+def test_sums_before_rounding(tmp_path):
+    (tmp_path / "10").write_text("drm-client-id:\t1\ndrm-memory-gtt:\t700 KiB\n")
+    (tmp_path / "11").write_text("drm-client-id:\t2\ndrm-memory-gtt:\t700 KiB\n")
+    assert gtt_watch.gtt_mb(tmp_path) == 1  # 1400 KiB, not 0 + 0
+
+
+def test_zero_is_a_measurement(tmp_path):
+    (tmp_path / "10").write_text("drm-client-id:\t1\ndrm-memory-gtt:\t0 KiB\n")
+    assert gtt_watch.gtt_mb(tmp_path) == 0
+
+
+def test_missing_gtt_figure_is_unknown_not_zero(monkeypatch, tmp_path, capsys):
+    fdinfo = tmp_path / "4242" / "fdinfo"
+    fdinfo.mkdir(parents=True)
+    (fdinfo / "3").write_text("drm-client-id: 1\ndrm-memory-vram: 1024 KiB\n")  # kernel without a GTT figure
+    assert gtt_watch.gtt_mb(fdinfo) is None
+    monkeypatch.setattr(gtt_watch, "PROC", tmp_path)
+    monkeypatch.setattr(gtt_watch, "find_pid", lambda name: 4242)
+    assert gtt_watch.main(["--limit", "1536"]) == 1
+    assert "no GTT figure" in capsys.readouterr().err
