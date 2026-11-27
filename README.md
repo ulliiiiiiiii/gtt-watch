@@ -25,7 +25,8 @@ gtt-watch --limit 1536 --notify    # exit status 2 and a desktop notification ab
 gtt-watch --process Xwayland
 ```
 
-Exit status: 0 below the limit, 2 above it, 1 when the process is not running.
+Exit status: 0 below the limit, 2 above it, 1 when the process is not running or the kernel publishes no
+GTT figure for it (an unknown value is never reported as 0 MB).
 
 ## Check every 15 minutes
 

@@ -20,9 +20,10 @@ UNITS = {"KiB": 1024, "MiB": 1024 * 1024}
 PROC = Path("/proc")
 
 
-def gtt_mb(fdinfo: Path) -> int:
-    """GTT memory in MB of one process, from its fdinfo folder. Every DRM client counts once, even with
-    several open files. The kernel reports the size in bytes, KiB or MiB."""
+def gtt_mb(fdinfo: Path) -> int | None:
+    """GTT memory in MB of one process, from its fdinfo folder, or None when the kernel publishes no GTT
+    figure for it. Every DRM client counts once, even with several open files. The kernel reports the
+    size in bytes, KiB or MiB; the total is rounded down to whole MB only after adding up all clients."""
     per_client = {}
     for entry in fdinfo.iterdir():
         try:
@@ -30,8 +31,10 @@ def gtt_mb(fdinfo: Path) -> int:
         except OSError:
             continue
         if (client := CLIENT.search(text)) and (gtt := GTT.search(text)):
-            per_client[client.group(1)] = int(gtt.group(1)) * UNITS.get(gtt.group(2) or "", 1) // (1024 * 1024)
-    return sum(per_client.values())
+            per_client[client.group(1)] = int(gtt.group(1)) * UNITS.get(gtt.group(2) or "", 1)
+    if not per_client:
+        return None
+    return sum(per_client.values()) // (1024 * 1024)
 
 
 def find_pid(name: str) -> int | None:
@@ -56,6 +59,10 @@ def main(argv: list[str] | None = None) -> int:
         mb = gtt_mb(PROC / str(pid) / "fdinfo")
     except OSError as exc:
         print(f"gtt-watch: cannot read fdinfo of {args.process} ({pid}): {exc}", file=sys.stderr)
+        return 1
+    if mb is None:
+        print(f"gtt-watch: no GTT figure in the fdinfo of {args.process} ({pid}), the kernel driver does not "
+              "publish one for it", file=sys.stderr)
         return 1
 
     print(f"{args.process}: {mb} MB GTT")
